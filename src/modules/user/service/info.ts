@@ -35,6 +35,38 @@ export class UserInfoService extends BaseService {
   utils: Utils;
 
   /**
+   * 处理密码哈希
+   * @param password 原始密码
+   * @returns 加密后的密码
+   */
+  hashPassword(password: string): string {
+    if (!password) return password;
+    return md5(password);
+  }
+
+  /**
+   * 重写add方法确保密码被哈希处理
+   * @param param 用户参数
+   */
+  async add(param) {
+    if (param.password) {
+      param.password = this.hashPassword(param.password);
+    }
+    return super.add(param);
+  }
+
+  /**
+   * 重写修改方法确保密码被哈希处理
+   * @param param 用户参数
+   */
+  async update(param) {
+    if (param.password) {
+      param.password = this.hashPassword(param.password);
+    }
+    return super.update(param);
+  }
+
+  /**
    * 绑定小程序手机号
    * @param userId
    * @param code
@@ -97,6 +129,10 @@ export class UserInfoService extends BaseService {
       }
     } catch (err) {}
     try {
+      // 如果有密码需要加密
+      if (param.password) {
+        param.password = this.hashPassword(param.password);
+      }
       return await this.userInfoEntity.update({ id }, param);
     } catch (err) {
       throw new CoolCommException('更新失败，参数错误或者手机号已存在');
@@ -115,7 +151,9 @@ export class UserInfoService extends BaseService {
     if (!check) {
       throw new CoolCommException('验证码错误');
     }
-    await this.userInfoEntity.update(user.id, { password: md5(password) });
+    await this.userInfoEntity.update(user.id, {
+      password: this.hashPassword(password),
+    });
   }
 
   /**
